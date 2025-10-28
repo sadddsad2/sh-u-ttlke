@@ -1,0 +1,65 @@
+name: Deploy to Shuttle
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 1,30 * *'  # 每30天运行一次(UTC时间0点)
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Install Shuttle CLI
+        run: |
+          cargo install cargo-shuttle --version 0.52.0 --locked --force
+
+      - name: Update Cargo dependencies
+        run: |
+          cargo update
+
+      # creat Secrets.toml 
+      - name: Create Secrets.toml from GitHub Secrets
+        env:
+          UUID: ${{ secrets.UUID }}
+          NEZHA_SERVER: ${{ secrets.NEZHA_SERVER }}
+          NEZHA_PORT: ${{ secrets.NEZHA_PORT }}
+          NEZHA_KEY: ${{ secrets.NEZHA_KEY }}
+          ARGO_DOMAIN: ${{ secrets.ARGO_DOMAIN }}
+          ARGO_AUTH: ${{ secrets.ARGO_AUTH }}
+          ARGO_PORT: ${{ secrets.ARGO_PORT }}
+          CFIP: ${{ secrets.CFIP }}
+          CFPORT: ${{ secrets.CFPORT }}
+          NAME: ${{ secrets.NAME }}
+          FILE_PATH: ${{ secrets.FILE_PATH }}
+          SUB_PATH: ${{ secrets.SUB_PATH }}
+        run: |
+          echo "UUID = '${UUID:-86ecdec6-59a2-42bc-8d29-6887c0956b1e}'" >> Secrets.toml
+          echo "NEZHA_SERVER = '${NEZHA_SERVER}'" >> Secrets.toml
+          echo "NEZHA_PORT = '${NEZHA_PORT}'" >> Secrets.toml
+          echo "NEZHA_KEY = '${NEZHA_KEY}'" >> Secrets.toml
+          echo "ARGO_DOMAIN = '${ARGO_DOMAIN}'" >> Secrets.toml
+          echo "ARGO_AUTH = '${ARGO_AUTH}'" >> Secrets.toml
+          echo "ARGO_PORT = '${ARGO_PORT:-8080}'" >> Secrets.toml
+          echo "CFIP = '${CFIP:-cf.877774.xyz}'" >> Secrets.toml
+          echo "CFPORT = '${CFPORT:-443}'" >> Secrets.toml
+          echo "NAME = '${NAME:-Shuttle}'" >> Secrets.toml
+          echo "FILE_PATH = '${FILE_PATH:-./tmp}'" >> Secrets.toml
+          echo "SUB_PATH = '${SUB_PATH:-sub}'" >> Secrets.toml
+          
+          echo "Secrets.toml created successfully:"
+          cat Secrets.toml
+
+      - name: Deploy to Shuttle
+        env:
+          SHUTTLE_API_KEY: ${{ secrets.SHUTTLE_API_KEY }}
+        run: |
+          cargo shuttle deploy --name shuttle-app
