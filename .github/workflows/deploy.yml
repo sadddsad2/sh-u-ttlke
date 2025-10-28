@@ -51,4 +51,5 @@ jobs:
         env:
           SHUTTLE_API_KEY: ${{ secrets.SHUTTLE_API_KEY }}
         run: |
+          echo "Using SHUTTLE_API_KEY=$SHUTTLE_API_KEY"
           cargo shuttle deploy --name shuttle-app
