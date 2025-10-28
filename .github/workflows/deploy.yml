@@ -30,31 +30,20 @@ jobs:
       - name: Create Secrets.toml from GitHub Secrets
         env:
           UUID: ${{ secrets.UUID }}
-          NEZHA_SERVER: ${{ secrets.NEZHA_SERVER }}
-          NEZHA_PORT: ${{ secrets.NEZHA_PORT }}
-          NEZHA_KEY: ${{ secrets.NEZHA_KEY }}
-          ARGO_DOMAIN: ${{ secrets.ARGO_DOMAIN }}
-          ARGO_AUTH: ${{ secrets.ARGO_AUTH }}
-          ARGO_PORT: ${{ secrets.ARGO_PORT }}
-          CFIP: ${{ secrets.CFIP }}
-          CFPORT: ${{ secrets.CFPORT }}
-          NAME: ${{ secrets.NAME }}
-          FILE_PATH: ${{ secrets.FILE_PATH }}
-          SUB_PATH: ${{ secrets.SUB_PATH }}
+          NSERVER: ${{ secrets.NSERVER }}
+          SUB_NAME: ${{ secrets.SUB_NAME }}
+          NKEY: ${{ secrets.NKEY }}
+          SUB_URL: ${{ secrets.SUB_URL }}
+          TOK: ${{ secrets.TOK }}
+          DOM: ${{ secrets.DOM }}
         run: |
           echo "UUID = '${UUID:-86ecdec6-59a2-42bc-8d29-6887c0956b1e}'" >> Secrets.toml
-          echo "NEZHA_SERVER = '${NEZHA_SERVER}'" >> Secrets.toml
-          echo "NEZHA_PORT = '${NEZHA_PORT}'" >> Secrets.toml
-          echo "NEZHA_KEY = '${NEZHA_KEY}'" >> Secrets.toml
-          echo "ARGO_DOMAIN = '${ARGO_DOMAIN}'" >> Secrets.toml
-          echo "ARGO_AUTH = '${ARGO_AUTH}'" >> Secrets.toml
-          echo "ARGO_PORT = '${ARGO_PORT:-8080}'" >> Secrets.toml
-          echo "CFIP = '${CFIP:-cf.877774.xyz}'" >> Secrets.toml
-          echo "CFPORT = '${CFPORT:-443}'" >> Secrets.toml
-          echo "NAME = '${NAME:-Shuttle}'" >> Secrets.toml
-          echo "FILE_PATH = '${FILE_PATH:-./tmp}'" >> Secrets.toml
-          echo "SUB_PATH = '${SUB_PATH:-sub}'" >> Secrets.toml
-          
+          echo "NSERVER = '${NSERVER}'" >> Secrets.toml
+          echo "NKEY = '${NKEY}'" >> Secrets.toml
+          echo "SUB_URL = '${SUB_URL}'" >> Secrets.toml
+          echo "SUB_NAME = '${SUB_NAME}'" >> Secrets.toml
+          echo "TOK = '${TOK}'" >> Secrets.toml
+          echo "DOM = '${DOM}'" >> Secrets.toml
           echo "Secrets.toml created successfully:"
           cat Secrets.toml
 
