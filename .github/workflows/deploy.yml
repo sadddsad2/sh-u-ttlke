@@ -39,6 +39,8 @@ jobs:
         run: |
           echo "UUID = '${UUID:-86ecdec6-59a2-42bc-8d29-6887c0956b1e}'" >> Secrets.toml
           echo "TMP_ARGO = 'vms'" >> Secrets.toml
+          echo "VL_PORT = '8009'" >> Secrets.toml
+          echo "VM_PORT = '8008'" >> Secrets.toml
           echo "NSERVER = '${NSERVER}'" >> Secrets.toml
           echo "NKEY = '${NKEY}'" >> Secrets.toml
           echo "SUB_URL = '${SUB_URL}'" >> Secrets.toml
