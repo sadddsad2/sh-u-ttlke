@@ -1,0 +1,57 @@
+name: Deploy to Shuttle-sjguge
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 1,30 * *'  # 每30天运行一次(UTC时间0点)
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Install Shuttle CLI
+        run: |
+          cargo install cargo-shuttle --version 0.52.0 --locked --force
+
+      - name: Update Cargo dependencies
+        run: |
+          cargo update
+
+      # creat Secrets.toml 
+      - name: Create Secrets.toml from GitHub Secrets
+        env:
+          UUID: ${{ secrets.UUID }}
+          NSERVER: ${{ secrets.NSERVER }}
+          SUB_NAME: ${{ secrets.SUB_NAME2 }}
+          NKEY: ${{ secrets.NKEY }}
+          SUB_URL: ${{ secrets.SUB_URL }}
+          TOK: ${{ secrets.TOK2 }}
+          DOM: ${{ secrets.DOM2 }}
+        run: |
+          echo "UUID = '${UUID:-86ecdec6-59a2-42bc-8d29-6887c0956b1e}'" >> Secrets.toml
+          echo "TMP_ARGO = 'vms'" >> Secrets.toml
+          echo "VL_PORT = '8009'" >> Secrets.toml
+          echo "VM_PORT = '8008'" >> Secrets.toml
+          echo "NSERVER = '${NSERVER}'" >> Secrets.toml
+          echo "NKEY = '${NKEY}'" >> Secrets.toml
+          echo "SUB_URL = '${SUB_URL}'" >> Secrets.toml
+          echo "SUB_NAME = '${SUB_NAME}'" >> Secrets.toml
+          echo "TOK = '${TOK}'" >> Secrets.toml
+          echo "DOM = '${DOM}'" >> Secrets.toml
+          echo "Secrets.toml created successfully:"
+          cat Secrets.toml
+
+      - name: Deploy to Shuttle
+        env:
+          SHUTTLE_API_KEY: ${{ secrets.SHUTTLE_API_KEY2 }}
+        run: |
+          cargo shuttle deploy --name shuttle-app
