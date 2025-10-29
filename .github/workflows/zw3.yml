@@ -1,4 +1,4 @@
-name: Deploy to Shuttle
+name: Deploy to Shuttle-zw3
 
 on:
   push:
