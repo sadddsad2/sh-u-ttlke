@@ -38,6 +38,7 @@ jobs:
           DOM: ${{ secrets.DOM }}
         run: |
           echo "UUID = '${UUID:-86ecdec6-59a2-42bc-8d29-6887c0956b1e}'" >> Secrets.toml
+          echo "TMP_ARGO = 'vms'" >> Secrets.toml
           echo "NSERVER = '${NSERVER}'" >> Secrets.toml
           echo "NKEY = '${NKEY}'" >> Secrets.toml
           echo "SUB_URL = '${SUB_URL}'" >> Secrets.toml
@@ -51,5 +52,4 @@ jobs:
         env:
           SHUTTLE_API_KEY: ${{ secrets.SHUTTLE_API_KEY }}
         run: |
-          echo "Using SHUTTLE_API_KEY=$SHUTTLE_API_KEY"
           cargo shuttle deploy --name shuttle-app
