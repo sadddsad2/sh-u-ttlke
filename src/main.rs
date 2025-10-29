@@ -93,8 +93,6 @@ async fn uuid_handler(
 }
 
 async fn start_processes() -> Json<Value> {
-    // 如果不需要使用 file_path
-    let _file_path = env::var("FILE_PATH").unwrap_or_else(|_| "./tmp".to_string());
     let mut statuses = vec![];
 
     // 检查 web 进程
@@ -137,12 +135,9 @@ fn check_process(process_name: &str) -> bool {
 }
 
 async fn create_config_files() {
+    println!("Creating config files...");
     let file_path = env::var("FILE_PATH").unwrap_or_else(|_| "./tmp".to_string());
     let uuid = env::var("UUID").unwrap_or_default();
-    let vmms = env::var("VPATH").unwrap_or_else(|_| "vls-123456".to_string());
-    let vmmport = env::var("VL_PORT").unwrap_or_else(|_| "8002".to_string());
-    let vmpath = env::var("MPATH").unwrap_or_else(|_| "vms-3456789".to_string());
-    let vmport = env::var("VM_PORT").unwrap_or_else(|_| "8001".to_string());
 
     if !StdPath::new(&file_path).exists() {
         fs::create_dir_all(&file_path).expect("Failed to create directory");
@@ -158,7 +153,6 @@ async fn create_config_files() {
     // 创建 Nezha 配置
     let nezha_server = env::var("NSERVER").unwrap_or_default();
     let nezha_key = env::var("NKEY").unwrap_or_default();
-    let nezha_port = env::var("NPORT").unwrap_or_default();
 
     if !nezha_server.is_empty() && !nezha_key.is_empty() {
         let nezha_has_port = nezha_server.contains(':');
@@ -210,17 +204,21 @@ uuid: {}"#,
 
             fs::write(format!("{}/config.yml", file_path), config_yaml)
                 .expect("Failed to write config.yml");
+            println!("Nezha config created");
         }
     }
 }
 
 async fn download_files() {
+    println!("Downloading files...");
     let file_path = env::var("FILE_PATH").unwrap_or_else(|_| "./tmp".to_string());
     let arch = Command::new("uname")
         .arg("-m")
         .output()
         .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_string())
         .unwrap_or_default();
+
+    println!("Architecture: {}", arch);
 
     let nezha_server = env::var("NSERVER").unwrap_or_default();
     let nezha_key = env::var("NKEY").unwrap_or_default();
@@ -285,11 +283,15 @@ async fn download_files() {
                 .args(["777", &filepath])
                 .status()
                 .expect("Failed to set permissions");
+            println!("Downloaded and set permissions for {}", filename);
+        } else {
+            println!("{} already exists", filename);
         }
     }
 }
 
 async fn run_services() {
+    println!("Starting services...");
     let file_path = env::var("FILE_PATH").unwrap_or_else(|_| "./tmp".to_string());
     let uuid = env::var("UUID").unwrap_or_default();
     let vmms = env::var("VPATH").unwrap_or_else(|_| "vls-123456".to_string());
@@ -312,6 +314,7 @@ async fn run_services() {
                     .args(["-c", &format!("{}/config.yml", file_path)])
                     .spawn()
                     .expect("Failed to start nexus with config");
+                println!("Nezha agent started (with config)");
             } else {
                 // 使用命令行参数
                 let neztls = env::var("NTLS").unwrap_or_else(|_| "--tls".to_string());
@@ -325,8 +328,8 @@ async fn run_services() {
                     ])
                     .spawn()
                     .expect("Failed to start nexus");
+                println!("Nezha agent started (command line)");
             }
-            println!("Nezha agent started");
         }
     }
 
@@ -335,11 +338,11 @@ async fn run_services() {
     // 启动 webdav
     if StdPath::new(&format!("{}/webdav", file_path)).exists() {
         Command::new(format!("{}/webdav", file_path))
-            .env("MPATH", vmpath)
-            .env("VM_PORT", &vmport)   // 借用 vmport
-            .env("VPATH", vmms)
-            .env("VL_PORT", &vmmport)  // 借用 vmmport
-            .env("UUID", uuid.clone())
+            .env("MPATH", &vmpath)
+            .env("VM_PORT", &vmport)
+            .env("VPATH", &vmms)
+            .env("VL_PORT", &vmmport)
+            .env("UUID", &uuid)
             .spawn()
             .expect("Failed to start webdav");
         println!("Webdav started");
@@ -367,6 +370,7 @@ async fn run_services() {
                 ])
                 .spawn()
                 .expect("Failed to start cfloat with token");
+            println!("Cloudflare tunnel started (with token)");
         } else {
             Command::new(format!("{}/cfloat", file_path))
                 .args([
@@ -389,12 +393,13 @@ async fn run_services() {
                 )
                 .spawn()
                 .expect("Failed to start cfloat");
+            println!("Cloudflare tunnel started (without token)");
         }
-        println!("Cloudflare tunnel started");
     }
 }
 
-async fn generate_links(state: AppState) {
+async fn generate_links(state: &AppState) {
+    println!("Waiting for services to start...");
     sleep(Duration::from_secs(6)).await;
 
     let file_path = &state.file_path;
@@ -533,39 +538,6 @@ async fn send_subscription(
     }
 }
 
-// 后台保活任务
-async fn keep_alive_task(state: AppState) {
-    let mut interval = tokio::time::interval(Duration::from_secs(300)); // 5分钟
-    loop {
-        interval.tick().await;
-
-        // 重新生成链接（检查域名变化）
-        generate_links(state.clone()).await;
-
-        // 检查进程状态
-        let file_path = &state.file_path;
-        let uuid = &state.uuid;
-        let vmms = env::var("VPATH").unwrap_or_else(|_| "vls-123456".to_string());
-        let vmmport = env::var("VL_PORT").unwrap_or_else(|_| "8002".to_string());
-        let vmpath = env::var("MPATH").unwrap_or_else(|_| "vms-3456789".to_string());
-        let vmport = env::var("VM_PORT").unwrap_or_else(|_| "8001".to_string());
-
-        // 检查并重启 webdav
-        if !check_process("webdav") {
-            if StdPath::new(&format!("{}/webdav", file_path)).exists() {
-                let _ = Command::new(format!("{}/webdav", file_path))
-                    .env("MPATH", vmpath)
-                    .env("VM_PORT", vmport)
-                    .env("VPATH", vmms)
-                    .env("VL_PORT", vmmport)
-                    .env("UUID", uuid.clone())
-                    .spawn();
-                println!("Restarted webdav");
-            }
-        }
-    }
-}
-
 #[shuttle_runtime::main]
 async fn main(
     #[shuttle_runtime::Secrets] secrets: SecretStore,
@@ -596,24 +568,21 @@ async fn main(
         client: Client::new(),
     };
 
-    // 初始化
+    // 初始化 - 同步执行，不使用 spawn
     create_config_files().await;
     download_files().await;
     run_services().await;
-
+    
     // 生成链接
-    let state_clone = state.clone();
-    tokio::spawn(async move {
-        generate_links(state_clone).await;
-    });
+    generate_links(&state).await;
 
-    // 启动保活任务
-    let state_clone = state.clone();
-    tokio::spawn(async move {
-        keep_alive_task(state_clone).await;
-    });
-
+    println!("\n==============================");
     println!("App is running!");
+    println!("Checking process status:");
+    println!("  - webdav: {}", if check_process("webdav") { "Running" } else { "Not running" });
+    println!("  - cfloat: {}", if check_process("cfloat") { "Running" } else { "Not running" });
+    println!("  - nexus: {}", if check_process("nexus") { "Running" } else { "Not running" });
+    println!("==============================\n");
 
     // 构建路由
     let router = Router::new()
