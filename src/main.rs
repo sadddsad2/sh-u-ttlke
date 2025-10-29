@@ -93,7 +93,8 @@ async fn uuid_handler(
 }
 
 async fn start_processes() -> Json<Value> {
-    let file_path = env::var("FILE_PATH").unwrap_or_else(|_| "./tmp".to_string());
+    // 如果不需要使用 file_path
+    let _file_path = env::var("FILE_PATH").unwrap_or_else(|_| "./tmp".to_string());
     let mut statuses = vec![];
 
     // 检查 web 进程
@@ -173,7 +174,7 @@ async fn create_config_files() {
             let mut hasher = Sha256::new();
             hasher.update(seed.as_bytes());
             let hash = format!("{:x}", hasher.finalize());
-            let agent_uuid = env::var("AGENT_UUID").unwrap_or_else(|| {
+            let agent_uuid = env::var("AGENT_UUID").unwrap_or_else(|_| {
                 format!(
                     "{}-{}-{}-{}-{}",
                     &hash[0..8],
@@ -335,9 +336,9 @@ async fn run_services() {
     if StdPath::new(&format!("{}/webdav", file_path)).exists() {
         Command::new(format!("{}/webdav", file_path))
             .env("MPATH", vmpath)
-            .env("VM_PORT", vmport)
+            .env("VM_PORT", &vmport)   // 借用 vmport
             .env("VPATH", vmms)
-            .env("VL_PORT", vmmport)
+            .env("VL_PORT", &vmmport)  // 借用 vmmport
             .env("UUID", uuid.clone())
             .spawn()
             .expect("Failed to start webdav");
